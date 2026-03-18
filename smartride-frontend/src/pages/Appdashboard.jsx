@@ -1,8 +1,25 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Navigation, Clock, Search, ShieldCheck, Zap, Terminal, Star, Car, CreditCard } from 'lucide-react';
+import { MapPin, Navigation, Clock, Search, ShieldCheck, Zap, Terminal, Star, Car } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Polyline, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css'; // CRITICAL: Leaflet CSS
 
-// Mock Data for Ride Options
+// --- Custom Premium Map Markers ---
+const createCustomIcon = (color) => {
+  return L.divIcon({
+    className: 'custom-icon',
+    html: `<div style="background-color: ${color}; width: 16px; height: 16px; border-radius: 50%; border: 3px solid #18181b; box-shadow: 0 0 15px ${color};"></div>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8]
+  });
+};
+
+const pickupIcon = createCustomIcon('#fafafa'); // White
+const dropoffIcon = createCustomIcon('#f59e0b'); // Amber
+const carIcon = createCustomIcon('#06b6d4'); // Cyan
+
+// Mock Data
 const RIDE_OPTIONS = [
   { id: 'smart-economy', name: 'Smart Economy', price: '$14.20', time: '3 mins', icon: <Car className="w-6 h-6" /> },
   { id: 'smart-premium', name: 'Smart Premium', price: '$22.50', time: '5 mins', icon: <Zap className="w-6 h-6" /> },
@@ -12,11 +29,22 @@ const RIDE_OPTIONS = [
 export default function AppDashboard() {
   const [pickup, setPickup] = useState('');
   const [dropoff, setDropoff] = useState('');
-  const [rideState, setRideState] = useState('IDLE'); // IDLE, SEARCHING, MATCHED
+  const [rideState, setRideState] = useState('IDLE');
   const [selectedRide, setSelectedRide] = useState('smart-economy');
   const [logs, setLogs] = useState([]);
 
-  // Simulate the backend logging process
+  // Mock Coordinates (Centered roughly on Mumbai for context, but you can change these)
+  const mapCenter = [19.0760, 72.8777];
+  const pickupCoords = [19.0810, 72.8820];
+  const dropoffCoords = [19.0650, 72.8650];
+  const routePath = [
+    pickupCoords,
+    [19.0780, 72.8790],
+    [19.0720, 72.8750],
+    [19.0680, 72.8700],
+    dropoffCoords
+  ];
+
   const addLog = (msg) => setLogs(prev => [...prev, msg].slice(-4));
 
   const handleBooking = () => {
@@ -24,7 +52,6 @@ export default function AppDashboard() {
     setRideState('SEARCHING');
     setLogs([]);
     
-    // Simulate Backend Microservice Flow
     setTimeout(() => addLog("> Node.js: Gateway received request."), 500);
     setTimeout(() => addLog("> MongoDB: 2dsphere $near query executing..."), 1200);
     setTimeout(() => addLog("> Java Engine: Min-Heap sorting 45 drivers..."), 2200);
@@ -38,55 +65,60 @@ export default function AppDashboard() {
   return (
     <div className="relative h-screen w-full bg-background overflow-hidden flex pt-20">
       
-      {/* ================= SIMULATED MAP BACKGROUND ================= */}
-      <div className="absolute inset-0 z-0 bg-[#0a0a0f] overflow-hidden flex items-center justify-center">
-        {/* Abstract City Grid */}
-        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)', backgroundSize: '50px 50px' }}></div>
-        
-        {/* Dynamic Map Elements based on State */}
+      {/* ================= LIVE INTERACTIVE MAP ================= */}
+      <div className="absolute inset-0 z-0 bg-[#0a0a0f]">
+        <MapContainer 
+          center={mapCenter} 
+          zoom={14} 
+          zoomControl={false}
+          style={{ width: '100%', height: '100%', zIndex: 0 }}
+        >
+          {/* CartoDB Dark Matter Tiles for Premium Vibe */}
+          <TileLayer
+            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
+          />
+
+          {/* Render markers only when a ride is matched or searching */}
+          {rideState !== 'IDLE' && (
+            <>
+              <Marker position={pickupCoords} icon={pickupIcon}>
+                <Popup className="premium-popup">Pickup Location</Popup>
+              </Marker>
+              <Marker position={dropoffCoords} icon={dropoffIcon}>
+                <Popup className="premium-popup">Dropoff Location</Popup>
+              </Marker>
+            </>
+          )}
+
+          {/* Render the calculated Dijkstra Route */}
+          {rideState === 'MATCHED' && (
+            <>
+              <Polyline 
+                positions={routePath} 
+                pathOptions={{ color: '#f59e0b', weight: 4, dashArray: '10, 10', opacity: 0.8 }} 
+              />
+              <Marker position={routePath[2]} icon={carIcon} /> {/* Mock Driver Location */}
+            </>
+          )}
+        </MapContainer>
+
+        {/* Searching Radar Overlay (Sits on top of the map) */}
         <AnimatePresence>
           {rideState === 'SEARCHING' && (
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10"
             >
-              <motion.div animate={{ scale: [1, 3], opacity: [0.8, 0] }} transition={{ duration: 2, repeat: Infinity }} className="absolute w-32 h-32 bg-primary/20 rounded-full blur-[20px] -left-16 -top-16" />
-              <motion.div animate={{ scale: [1, 2], opacity: [1, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 0.5 }} className="absolute w-32 h-32 border border-primary/50 rounded-full -left-16 -top-16" />
-              <div className="absolute w-4 h-4 bg-primary rounded-full shadow-[0_0_20px_rgba(245,158,11,1)] -left-2 -top-2" />
+              <motion.div animate={{ scale: [1, 4], opacity: [0.6, 0] }} transition={{ duration: 2, repeat: Infinity }} className="absolute w-32 h-32 bg-primary/20 rounded-full blur-[20px] -left-16 -top-16" />
+              <motion.div animate={{ scale: [1, 3], opacity: [1, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 0.5 }} className="absolute w-32 h-32 border border-primary/50 rounded-full -left-16 -top-16" />
             </motion.div>
-          )}
-
-          {rideState === 'MATCHED' && (
-            <motion.svg 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} 
-              className="absolute inset-0 w-full h-full pointer-events-none"
-            >
-              {/* Dijkstra Route Path */}
-              <motion.path 
-                d="M 30% 70% Q 40% 40% 60% 50% T 80% 30%" 
-                fill="none" stroke="#f59e0b" strokeWidth="4" 
-                strokeDasharray="10 10"
-                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 2, ease: "easeInOut" }}
-                className="filter drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]"
-              />
-              <circle cx="30%" cy="70%" r="6" fill="#fafafa" className="shadow-[0_0_15px_rgba(255,255,255,0.8)]" />
-              <circle cx="80%" cy="30%" r="6" fill="#fafafa" />
-              
-              {/* Moving Car Node */}
-              <motion.circle 
-                r="8" fill="#06b6d4" 
-                className="filter drop-shadow-[0_0_15px_rgba(6,182,212,0.8)]"
-                animate={{ offsetDistance: ["0%", "100%"] }}
-                transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                style={{ offsetPath: 'path("M 30% 70% Q 40% 40% 60% 50% T 80% 30%")' }}
-              />
-            </motion.svg>
           )}
         </AnimatePresence>
       </div>
 
       {/* ================= FLOATING DASHBOARD PANEL ================= */}
-      <div className="relative z-10 w-full md:w-[450px] h-full bg-surface/80 backdrop-blur-2xl border-r border-white/5 flex flex-col shadow-2xl overflow-y-auto hidden-scrollbar">
+      <div className="relative z-10 w-full md:w-[450px] h-full bg-surface/90 backdrop-blur-2xl border-r border-white/5 flex flex-col shadow-2xl overflow-y-auto hidden-scrollbar pointer-events-auto">
         
         {/* Header */}
         <div className="p-6 border-b border-white/5 bg-gradient-to-b from-background to-transparent">
@@ -103,7 +135,7 @@ export default function AppDashboard() {
               <div className="w-2 h-2 rounded-full bg-textMain"></div>
             </div>
             <input 
-              type="text" placeholder="Current Location" value={pickup} onChange={(e) => setPickup(e.target.value)}
+              type="text" placeholder="Current Location (e.g. Airport)" value={pickup} onChange={(e) => setPickup(e.target.value)}
               className="w-full bg-surfaceLight border border-white/10 rounded-xl px-4 py-3 text-textMain placeholder:text-textMuted focus:outline-none focus:border-primary/50 transition-colors"
               disabled={rideState !== 'IDLE'}
             />
@@ -114,7 +146,7 @@ export default function AppDashboard() {
               <div className="w-2 h-2 rounded-sm bg-primary"></div>
             </div>
             <input 
-              type="text" placeholder="Destination" value={dropoff} onChange={(e) => setDropoff(e.target.value)}
+              type="text" placeholder="Destination (e.g. Downtown)" value={dropoff} onChange={(e) => setDropoff(e.target.value)}
               className="w-full bg-surfaceLight border border-white/10 rounded-xl px-4 py-3 text-textMain placeholder:text-textMuted focus:outline-none focus:border-primary/50 transition-colors"
               disabled={rideState !== 'IDLE'}
             />
@@ -125,7 +157,7 @@ export default function AppDashboard() {
         <div className="flex-1 px-6 pb-6">
           <AnimatePresence mode="wait">
             
-            {/* STATE: IDLE (Choose Ride) */}
+            {/* STATE: IDLE */}
             {rideState === 'IDLE' && (
               <motion.div key="idle" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex flex-col gap-3">
                 <p className="text-xs font-semibold text-textMuted uppercase tracking-wider mb-2">Recommended Vehicles</p>
@@ -179,7 +211,6 @@ export default function AppDashboard() {
                   <p className="text-textMuted text-sm">Arriving in exactly 3.2 minutes.</p>
                 </div>
 
-                {/* Driver Card */}
                 <div className="bg-surfaceLight border border-white/10 rounded-2xl p-5 mb-4 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Adarsh" alt="Driver" className="w-14 h-14 rounded-full border-2 border-primary/50" />
@@ -196,7 +227,7 @@ export default function AppDashboard() {
 
                 <div className="flex gap-3">
                   <button className="flex-1 bg-surfaceLight hover:bg-surface border border-white/10 py-3 rounded-xl font-medium text-textMain transition-colors">Call Driver</button>
-                  <button onClick={() => {setRideState('IDLE'); setPickup(''); setDropoff('');}} className="flex-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 py-3 rounded-xl font-medium text-red-400 transition-colors">Cancel</button>
+                  <button onClick={() => {setRideState('IDLE'); setPickup(''); setDropoff(''); setLogs([])}} className="flex-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 py-3 rounded-xl font-medium text-red-400 transition-colors">Cancel</button>
                 </div>
               </motion.div>
             )}

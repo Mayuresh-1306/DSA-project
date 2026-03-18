@@ -42,7 +42,7 @@ export default function App() {
             <Route path="/technology" element={<TechnologyPage />} />
             <Route path="/drive" element={<DrivePage />} />
             <Route path="/app" element={<AppDashboard />} />
-            <Route path="/auth" element={<AuthPage />} />
+            
             <Route path="/signin" element={<SignInPage />} />
             <Route path="/signup" element={<SignUpPage />} />
           </Routes>
