@@ -1,34 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import CinematicIntro from './components/intro';
+import ScrollIntro from './components/intro';
 import Navbar from './components/navbar';
 import LandingPage from './pages/landing';
 import FeaturesPage from './pages/features';
 import TechnologyPage from './pages/technology';
 import DrivePage from './pages/drive';
-import AppDashboard from './pages/Appdashboard';
 import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
+import AppDashboard from './pages/Appdashboard';
+
 export default function App() {
-  // Check if user has already passed the intro or is signed in
-  const [showIntro, setShowIntro] = useState(false);
-
-  useEffect(() => {
-    const hasSeenIntro = localStorage.getItem('smartride_intro_seen');
-    const isSignedIn = localStorage.getItem('smartride_user_token');
-
-    if (!hasSeenIntro && !isSignedIn) {
-      setShowIntro(true);
-    }
-  }, []);
-
-  const handleIntroComplete = () => {
-    localStorage.setItem('smartride_intro_seen', 'true');
-    setShowIntro(false);
-  };
+  const [showIntro, setShowIntro] = useState(true);
 
   if (showIntro) {
-    return <CinematicIntro onComplete={handleIntroComplete} />;
+    return <ScrollIntro onComplete={() => setShowIntro(false)} />;
   }
 
   return (
@@ -41,10 +27,9 @@ export default function App() {
             <Route path="/features" element={<FeaturesPage />} />
             <Route path="/technology" element={<TechnologyPage />} />
             <Route path="/drive" element={<DrivePage />} />
-            <Route path="/app" element={<AppDashboard />} />
-            
             <Route path="/signin" element={<SignInPage />} />
             <Route path="/signup" element={<SignUpPage />} />
+            <Route path="/app" element={<AppDashboard />} />
           </Routes>
         </div>
       </div>
