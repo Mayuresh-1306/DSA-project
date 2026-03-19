@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import CinematicIntro from './components/intro';
 import Navbar from './components/navbar';
 import LandingPage from './pages/landing';
@@ -10,13 +10,20 @@ import AppDashboard from './pages/Appdashboard';
 import RideBooking from './pages/RideBooking';
 import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
+
+// Simple Route Protector
+const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem('smartride_jwt_token');
+  if (!token) return <Navigate to="/signin" replace />;
+  return children;
+};
+
 export default function App() {
-  // Check if user has already passed the intro or is signed in
   const [showIntro, setShowIntro] = useState(false);
 
   useEffect(() => {
     const hasSeenIntro = localStorage.getItem('smartride_intro_seen');
-    const isSignedIn = localStorage.getItem('smartride_user_token');
+    const isSignedIn = localStorage.getItem('smartride_jwt_token');
 
     if (!hasSeenIntro && !isSignedIn) {
       setShowIntro(true);
@@ -42,8 +49,10 @@ export default function App() {
             <Route path="/features" element={<FeaturesPage />} />
             <Route path="/technology" element={<TechnologyPage />} />
             <Route path="/drive" element={<DrivePage />} />
-            <Route path="/book" element={<RideBooking />} />
-            <Route path="/app" element={<AppDashboard />} />
+            
+            {/* Protected Routes */}
+            <Route path="/book" element={<ProtectedRoute><RideBooking /></ProtectedRoute>} />
+            <Route path="/app" element={<ProtectedRoute><AppDashboard /></ProtectedRoute>} />
             
             <Route path="/signin" element={<SignInPage />} />
             <Route path="/signup" element={<SignUpPage />} />

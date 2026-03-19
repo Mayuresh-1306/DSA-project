@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 
 const driverSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
   rating: { type: Number, default: 4.5, min: 1.0, max: 5.0 },
   status: {
     type: String,

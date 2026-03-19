@@ -1,10 +1,14 @@
-import { useRef } from 'react';
+import { useState, useRef } from 'react';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
-import { Mail, Lock, ArrowRight, Activity } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Activity, User, Car } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function SignInPage() {
   const navigate = useNavigate();
+  const [role, setRole] = useState('rider'); // 'rider' | 'driver'
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
   const ref = useRef(null);
   
   const x = useMotionValue(0);
@@ -25,10 +29,28 @@ export default function SignInPage() {
     y.set(mouseY / height - 0.5);
   };
 
-  const handleAuth = (e) => {
+  const handleAuth = async (e) => {
     e.preventDefault();
-    localStorage.setItem('smartride_user_token', 'authenticated');
-    navigate('/app');
+    setErrorMsg('');
+    try {
+      const endpoint = role === 'rider' ? '/api/auth/user/login' : '/api/auth/driver/login';
+      const res = await fetch(`http://localhost:5000${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        localStorage.setItem('smartride_jwt_token', data.token);
+        localStorage.setItem('smartride_user_role', role);
+        navigate('/app');
+      } else {
+        setErrorMsg(data.error || 'Authentication failed');
+      }
+    } catch (err) {
+      setErrorMsg('Could not connect to authentication server');
+    }
   };
 
   return (
@@ -96,12 +118,33 @@ export default function SignInPage() {
             </div>
 
             <form onSubmit={handleAuth} className="space-y-4">
+              {/* Role Toggle */}
+              <div className="flex bg-background border border-white/10 rounded-xl p-1 mb-6">
+                <button 
+                  type="button" 
+                  onClick={() => setRole('rider')}
+                  className={`flex-1 py-2 flex items-center justify-center gap-2 rounded-lg font-semibold transition-all ${role === 'rider' ? 'bg-primary text-background shadow-lg' : 'text-textMuted hover:text-white'}`}
+                >
+                  <User size={16} /> Rider
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => setRole('driver')}
+                  className={`flex-1 py-2 flex items-center justify-center gap-2 rounded-lg font-semibold transition-all ${role === 'driver' ? 'bg-primary text-background shadow-lg' : 'text-textMuted hover:text-white'}`}
+                >
+                  <Car size={16} /> Driver
+                </button>
+              </div>
+
+              {errorMsg && <p className="text-red-400 text-sm italic text-center">{errorMsg}</p>}
+
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <Mail size={18} className="text-textMuted" />
                 </div>
                 <input 
                   type="email" 
+                  value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="Email Address" 
                   required
                   className="w-full bg-background border border-white/5 rounded-xl py-3 pl-12 pr-4 text-textMain placeholder:text-textMuted focus:outline-none focus:border-primary/50 transition-colors"
@@ -114,6 +157,7 @@ export default function SignInPage() {
                 </div>
                 <input 
                   type="password" 
+                  value={password} onChange={e => setPassword(e.target.value)}
                   placeholder="Password" 
                   required
                   className="w-full bg-background border border-white/5 rounded-xl py-3 pl-12 pr-4 text-textMain placeholder:text-textMuted focus:outline-none focus:border-primary/50 transition-colors"

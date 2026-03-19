@@ -8,6 +8,7 @@ dotenv.config(); // CRITICAL: Load env variables BEFORE importing local services
 const rideRoutes = require('./routes/rideRoutes');
 const driverRoutes = require('./routes/driverRoutes');
 const pricingRoutes = require('./routes/pricingRoutes');
+const authRoutes = require('./routes/authRoutes');
 const javaEngine = require('./services/javaEngineService');
 
 const app = express();
@@ -16,6 +17,7 @@ app.use(cors());
 app.use(express.json());
 
 // ── Route Mounts ──
+app.use('/api/auth', authRoutes);
 app.use('/api/rides', rideRoutes);
 app.use('/api/drivers', driverRoutes);
 app.use('/api/pricing', pricingRoutes);
