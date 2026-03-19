@@ -7,6 +7,7 @@ import FeaturesPage from './pages/features';
 import TechnologyPage from './pages/technology';
 import DrivePage from './pages/drive';
 import AppDashboard from './pages/Appdashboard';
+import RideBooking from './pages/RideBooking';
 import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
 export default function App() {
@@ -41,6 +42,7 @@ export default function App() {
             <Route path="/features" element={<FeaturesPage />} />
             <Route path="/technology" element={<TechnologyPage />} />
             <Route path="/drive" element={<DrivePage />} />
+            <Route path="/book" element={<RideBooking />} />
             <Route path="/app" element={<AppDashboard />} />
             
             <Route path="/signin" element={<SignInPage />} />

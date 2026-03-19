@@ -1,0 +1,3 @@
+@echo off
+echo Starting SmartRide Java Engine...
+java -cp out com.smartride.engine.server.SmartRideServer %1
