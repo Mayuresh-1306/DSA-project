@@ -5,14 +5,22 @@ const rideSchema = new mongoose.Schema({
   driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'Driver' },
   pickupNode: { type: String, required: true },
   dropoffNode: { type: String, required: true },
-  status: { 
-    type: String, 
-    enum: ['SEARCHING', 'MATCHED', 'COMPLETED', 'CANCELLED'], 
-    default: 'SEARCHING' 
+  pickupCoords: {
+    type: { type: String, enum: ['Point'] },
+    coordinates: [Number]
+  },
+  status: {
+    type: String,
+    enum: ['SEARCHING', 'MATCHED', 'COMPLETED', 'CANCELLED'],
+    default: 'SEARCHING'
   },
   price: { type: Number },
-  estimatedTime: { type: Number },
-  createdAt: { type: Date, default: Date.now }
+  estimatedTime: { type: Number },          // minutes
+  routeDistance: { type: Number },           // km
+  routePath: [{ type: String }],            // ordered node IDs
+  surgeMultiplier: { type: Number, default: 1.0 },
+  createdAt: { type: Date, default: Date.now },
+  completedAt: { type: Date }
 });
 
 module.exports = mongoose.model('Ride', rideSchema);

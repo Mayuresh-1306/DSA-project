@@ -1,10 +1,16 @@
-import { useRef } from 'react';
+import { useState, useRef } from 'react';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
-import { Mail, Lock, User, ArrowRight, Database } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Database, Car, Settings } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function SignUpPage() {
   const navigate = useNavigate();
+  const [role, setRole] = useState('rider'); 
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [vehicleType, setVehicleType] = useState('sedan');
+  const [errorMsg, setErrorMsg] = useState('');
   const ref = useRef(null);
   
   const x = useMotionValue(0);
@@ -25,10 +31,30 @@ export default function SignUpPage() {
     y.set(mouseY / height - 0.5);
   };
 
-  const handleAuth = (e) => {
+  const handleAuth = async (e) => {
     e.preventDefault();
-    localStorage.setItem('smartride_user_token', 'authenticated');
-    navigate('/app');
+    setErrorMsg('');
+    try {
+      const endpoint = role === 'rider' ? '/api/auth/user/register' : '/api/auth/driver/register';
+      const payload = role === 'rider' ? { name, email, password } : { name, email, password, vehicleType };
+      
+      const res = await fetch(`http://localhost:5000${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        localStorage.setItem('smartride_jwt_token', data.token);
+        localStorage.setItem('smartride_user_role', role);
+        navigate('/app');
+      } else {
+        setErrorMsg(data.error || 'Registration failed');
+      }
+    } catch (err) {
+      setErrorMsg('Could not connect to authentication server');
+    }
   };
 
   return (
@@ -50,12 +76,33 @@ export default function SignUpPage() {
             </div>
 
             <form onSubmit={handleAuth} className="space-y-4">
+              {/* Role Toggle */}
+              <div className="flex bg-background border border-white/10 rounded-xl p-1 mb-4">
+                <button 
+                  type="button" 
+                  onClick={() => setRole('rider')}
+                  className={`flex-1 py-1.5 flex items-center justify-center gap-2 rounded-lg font-semibold transition-all ${role === 'rider' ? 'bg-secondary text-background shadow-lg' : 'text-textMuted hover:text-white'}`}
+                >
+                  <User size={16} /> Rider
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => setRole('driver')}
+                  className={`flex-1 py-1.5 flex items-center justify-center gap-2 rounded-lg font-semibold transition-all ${role === 'driver' ? 'bg-secondary text-background shadow-lg' : 'text-textMuted hover:text-white'}`}
+                >
+                  <Car size={16} /> Driver
+                </button>
+              </div>
+
+              {errorMsg && <p className="text-red-400 text-sm italic text-center mb-2">{errorMsg}</p>}
+
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <User size={18} className="text-textMuted" />
                 </div>
                 <input 
                   type="text" 
+                  value={name} onChange={e => setName(e.target.value)}
                   placeholder="Full Name" 
                   required
                   className="w-full bg-background border border-white/5 rounded-xl py-3 pl-12 pr-4 text-textMain placeholder:text-textMuted focus:outline-none focus:border-secondary/50 transition-colors"
@@ -68,6 +115,7 @@ export default function SignUpPage() {
                 </div>
                 <input 
                   type="email" 
+                  value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="Email Address" 
                   required
                   className="w-full bg-background border border-white/5 rounded-xl py-3 pl-12 pr-4 text-textMain placeholder:text-textMuted focus:outline-none focus:border-secondary/50 transition-colors"
@@ -80,15 +128,33 @@ export default function SignUpPage() {
                 </div>
                 <input 
                   type="password" 
+                  value={password} onChange={e => setPassword(e.target.value)}
                   placeholder="Password" 
                   required
                   className="w-full bg-background border border-white/5 rounded-xl py-3 pl-12 pr-4 text-textMain placeholder:text-textMuted focus:outline-none focus:border-secondary/50 transition-colors"
                 />
               </div>
 
+              {role === 'driver' && (
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Settings size={18} className="text-textMuted" />
+                  </div>
+                  <select 
+                    value={vehicleType} onChange={e => setVehicleType(e.target.value)}
+                    className="w-full bg-background border border-white/5 rounded-xl py-3 pl-12 pr-4 text-textMain focus:outline-none focus:border-secondary/50 transition-colors appearance-none"
+                  >
+                    <option value="sedan">Sedan</option>
+                    <option value="suv">SUV</option>
+                    <option value="auto">Auto Rickshaw</option>
+                    <option value="bike">Bike</option>
+                  </select>
+                </div>
+              )}
+
               <button 
                 type="submit"
-                className="w-full py-4 mt-4 bg-secondary hover:bg-[#0891b2] text-background rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(6,182,212,0.2)] hover:shadow-[0_0_30px_rgba(6,182,212,0.4)]"
+                className="w-full py-4 mt-2 bg-secondary hover:bg-[#0891b2] text-background rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(6,182,212,0.2)] hover:shadow-[0_0_30px_rgba(6,182,212,0.4)]"
               >
                 Initialize Account <ArrowRight size={18} strokeWidth={2.5} />
               </button>
